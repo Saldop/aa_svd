@@ -164,9 +164,7 @@ remove_almost_zeros(B_verify)
 print("B_verify=\n{}".format(B_verify))
 
 # B' = U * B * V = B_
-zero = B_ - B_verify
-remove_almost_zeros(zero)
-assert(np.array_equal(zero, np.zeros(B_.shape)))
+assert(np.allclose(B_, B_verify))
 
 diag =  np.asarray(B.diagonal())
 diag_ = np.asarray(B_.diagonal())
