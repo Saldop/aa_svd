@@ -2,9 +2,6 @@ from numpy import linalg as LA
 import numpy as np
 import math
 
-EPSILON = 1e-5
-
-
 def nearest_eigen_value(B):
     # 2 posledni hodnoty diagonala + hodnota nad tim
     fn2 = B[-3, -2]
@@ -94,7 +91,7 @@ def get_v(B, i, j):
 def remove_almost_zeros(M):
     for x in range(M.shape[0]):
         for y in range(M.shape[1]):
-            if math.fabs(M[x, y]) < EPSILON:
+            if math.fabs(M[x, y]) < 1e-15:
                 M[x, y] = 0
 
 def multiply_list_of_matrices(matrices):
@@ -123,14 +120,14 @@ def svd(B):
         sum_of_second_diag = sum(map(math.fabs, np.asarray(B.diagonal(1))))
 
         print(sum_of_second_diag)
-        if sum_of_main_diag == original_sum_of_main_diag or \
+        if sum_of_main_diag == original_sum_of_main_diag and \
             sum_of_second_diag == original_sum_of_second_diag or \
-            sum_of_second_diag < EPSILON:
+            sum_of_second_diag < 1e-14:
             U = multiply_list_of_matrices(Us)
             V = multiply_list_of_matrices(Vs)
             return U, B, V
 
-        assert sum_of_main_diag > original_sum_of_main_diag
+        assert sum_of_main_diag >= original_sum_of_main_diag
         assert sum_of_second_diag < original_sum_of_second_diag
 
 def _svd_step(B):
@@ -191,7 +188,6 @@ print("B_verify=\n{}".format(B_verify))
 
 # B' = U * B * V = B_
 assert (np.allclose(B_, B_verify))
-
 
 diag = sum(map(math.fabs, np.asarray(B.diagonal())))
 diag_ = sum(map(math.fabs, np.asarray(B_.diagonal())))
