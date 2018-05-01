@@ -53,6 +53,11 @@ def get_u(B, i, j):
     c = x1 / r
     s = x2 / r
 
+    if math.isnan(c):
+        c = 1
+    if math.isnan(s):
+        s = 0
+
     U = np.identity(B.shape[0])
     U[i, j] = c
     U[i, j + 1] = s
@@ -71,6 +76,11 @@ def get_v(B, i, j):
     c = x1 / r
     s = x2 / r
 
+    if math.isnan(c):
+        c = 1
+    if math.isnan(s):
+        s = 0
+
     U = np.identity(B.shape[0])
     # o jedno dolu a o jedno doprava
     U[i + 1, j] = c
@@ -87,17 +97,41 @@ def remove_almost_zeros(M):
             if math.fabs(M[x, y]) < EPSILON:
                 M[x, y] = 0
 
+def multiply_list_of_matrices(matrices):
+    M = matrices[0]
+    for i in range(1, len(matrices)):
+        M = np.matmul(M, matrices[i])
+    return M
 
 def svd(B):
     if B.shape[0] is not B.shape[1]:
         raise Exception('B neni ctvercova matice.')
+
+    Us = []
+    Vs = []
+
     while True:
+        original_sum_of_main_diag = sum(map(math.fabs, np.asarray(B.diagonal())))
+        original_sum_of_second_diag = sum(map(math.fabs, np.asarray(B.diagonal(1))))
+
         U, B, V = _svd_step(B)
+
+        Us.insert(0, U)
+        Vs.append(V)
+
+        sum_of_main_diag = sum(map(math.fabs, np.asarray(B.diagonal())))
         sum_of_second_diag = sum(map(math.fabs, np.asarray(B.diagonal(1))))
+
         print(sum_of_second_diag)
-        if sum_of_second_diag < EPSILON:
+        if sum_of_main_diag == original_sum_of_main_diag or \
+            sum_of_second_diag == original_sum_of_second_diag or \
+            sum_of_second_diag < EPSILON:
+            U = multiply_list_of_matrices(Us)
+            V = multiply_list_of_matrices(Vs)
             return U, B, V
 
+        assert sum_of_main_diag > original_sum_of_main_diag
+        assert sum_of_second_diag < original_sum_of_second_diag
 
 def _svd_step(B):
     n = B.shape[0]
@@ -133,35 +167,10 @@ def _svd_step(B):
         print("=\n{}\n".format(B))
         Vs.append(Vn)
 
-        # print("U=\n{}".format(Un))
-        # B = np.matmul(Un.T, B)
-        # print("U^T * B =\n{}".format(B))
-
-    def multiply_list_of_matrices(matrices):
-        M = matrices[0]
-        for i in range(1, len(matrices)):
-            M = np.matmul(M, matrices[i])
-        return M
-
     U = multiply_list_of_matrices(Us)
     V = multiply_list_of_matrices(Vs)
 
-    # B = np.matmul(U,B)
-    # B = np.matmul(B, V)
-
     return (U, B, V)
-
-
-# [[ 0,  1,  2,  3],
-# [ 4,  5,  6,  7],
-# [ 8,  9, 10, 11],
-# [12, 13, 14, 15]]
-# matrix = np.arange(0, 16).reshape((4,4))
-# B = np.matrix([
-#    [1,4,0,0],
-#    [0,2,5,0],
-#    [0,0,3,6],
-#    [0,0,0,4]])
 
 N = 3
 B = np.zeros((N, N))
@@ -183,15 +192,11 @@ print("B_verify=\n{}".format(B_verify))
 # B' = U * B * V = B_
 assert (np.allclose(B_, B_verify))
 
-diag = np.asarray(B.diagonal())
-diag_ = np.asarray(B_.diagonal())
-print(diag_ - diag)
-# last one is broken, remove later on
-diag = np.delete(diag, -1)
-diag_ = np.delete(diag_, -1)
-assert (all(diag < diag_))
 
-diag2 = np.asarray(B.diagonal(1))
-diag2_ = np.asarray(B_.diagonal(1))
-print(diag2 - diag2_)
-assert (all(diag2 > diag2_))
+diag = sum(map(math.fabs, np.asarray(B.diagonal())))
+diag_ = sum(map(math.fabs, np.asarray(B_.diagonal())))
+assert (diag < diag_)
+
+diag2 = sum(map(math.fabs, np.asarray(B.diagonal(1))))
+diag2_ = sum(map(math.fabs, np.asarray(B_.diagonal(1))))
+assert (diag2 > diag2_)
