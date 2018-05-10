@@ -91,7 +91,7 @@ def get_v(B, i, j):
 def remove_almost_zeros(M):
     for x in range(M.shape[0]):
         for y in range(M.shape[1]):
-            if math.fabs(M[x, y]) < 1e-15:
+            if math.fabs(M[x, y]) < 1e-12:
                 M[x, y] = 0
 
 def multiply_list_of_matrices(matrices):
@@ -100,21 +100,29 @@ def multiply_list_of_matrices(matrices):
         M = np.matmul(M, matrices[i])
     return M
 
+def check_svd(B, U, B_, V):
+    B_verify = np.matmul(U.T, B_)
+    B_verify = np.matmul(B_verify, V.T)
+    remove_almost_zeros(B_verify)
+    assert (np.allclose(B, B_verify))
+
 def svd(B):
     if B.shape[0] is not B.shape[1]:
         raise Exception('B neni ctvercova matice.')
 
-    Us = []
-    Vs = []
+    Hl = np.identity(B.shape[0])
+    Hr = np.identity(B.shape[0])
 
+    M = B.copy()
     while True:
         original_sum_of_main_diag = sum(map(math.fabs, np.asarray(B.diagonal())))
         original_sum_of_second_diag = sum(map(math.fabs, np.asarray(B.diagonal(1))))
 
-        U, B, V = _svd_step(B)
+        Hl_s, B, Hr_s = _svd_step(B)
+        Hl = np.matmul(Hl_s, Hl)
+        Hr = np.matmul(Hr, Hr_s)
 
-        Us.insert(0, U)
-        Vs.append(V)
+        check_svd(M, Hl, B, Hr)
 
         sum_of_main_diag = sum(map(math.fabs, np.asarray(B.diagonal())))
         sum_of_second_diag = sum(map(math.fabs, np.asarray(B.diagonal(1))))
@@ -123,9 +131,7 @@ def svd(B):
         if sum_of_main_diag == original_sum_of_main_diag and \
             sum_of_second_diag == original_sum_of_second_diag or \
             sum_of_second_diag < 1e-14:
-            U = multiply_list_of_matrices(Us)
-            V = multiply_list_of_matrices(Vs)
-            return U, B, V
+            return Hl, B, Hr
 
         assert sum_of_main_diag >= original_sum_of_main_diag
         assert sum_of_second_diag < original_sum_of_second_diag
@@ -139,8 +145,8 @@ def _svd_step(B):
     print("{} \n*\n {}".format(B, G1))
     B = np.matmul(B, G1)
     print("B=\n{}\n".format(B))
-    Us = []
-    Vs = [G1]
+    Hl = np.identity(B.shape[0])
+    Hr = G1
 
     for x in range(0, n - 1):
         # print("B=\n{}".format(B))
@@ -148,10 +154,9 @@ def _svd_step(B):
         print("U{} * B=".format(x + 1))
         print("{} \n*\n {}".format(Un, B))
         B = np.matmul(Un, B)
-        remove_almost_zeros(B)
-        assert (B[x + 1, x] == 0.0)
+        assert (math.fabs(B[x + 1, x]) < 1e-12)
         print("=\n{}\n".format(B))
-        Us.insert(0, Un)
+        Hl = np.matmul(Un, Hl)
 
         if x == n - 2:
             break
@@ -159,17 +164,13 @@ def _svd_step(B):
         print("B * V{}=".format(x + 2))
         print("{} \n*\n {}".format(B, Vn))
         B = np.matmul(B, Vn)
-        remove_almost_zeros(B)
-        assert (B[x, x + 2] == 0.0)
+        assert (math.fabs(B[x, x + 2]) < 1e-12)
         print("=\n{}\n".format(B))
-        Vs.append(Vn)
+        Hr = np.matmul(Hr, Vn)
 
-    U = multiply_list_of_matrices(Us)
-    V = multiply_list_of_matrices(Vs)
+    return (Hl, B, Hr)
 
-    return (U, B, V)
-
-N = 3
+N = 4
 B = np.zeros((N, N))
 np.fill_diagonal(B, range(1, N + 1))
 np.fill_diagonal(B[:, 1:], range(N + 1, 2 * N))
@@ -181,13 +182,7 @@ print("B_=\n{}\n".format(B_))
 print("U=\n{}\n".format(U))
 print("V=\n{}".format(V))
 
-B_verify = np.matmul(U, B)
-B_verify = np.matmul(B_verify, V)
-remove_almost_zeros(B_verify)
-print("B_verify=\n{}".format(B_verify))
-
-# B' = U * B * V = B_
-assert (np.allclose(B_, B_verify))
+check_svd(B, U, B_, V)
 
 diag = sum(map(math.fabs, np.asarray(B.diagonal())))
 diag_ = sum(map(math.fabs, np.asarray(B_.diagonal())))
