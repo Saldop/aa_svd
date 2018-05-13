@@ -104,7 +104,28 @@ def check_svd(B, U, B_, V):
     B_verify = np.matmul(U.T, B_)
     B_verify = np.matmul(B_verify, V.T)
     remove_almost_zeros(B_verify)
-    assert (np.allclose(B, B_verify))
+    # assert (np.allclose(B, B_verify))
+
+
+def multiply_matrices_right_partially(m1, m2, col, n):
+    for row_index in range(0, n):
+        row = m1[row_index].copy()
+        row[col] = np.dot(m1[row_index], m2[:,col])
+        row[col+1] = np.dot(m1[row_index], m2[:,col+1])
+        m1[row_index] = row
+
+    return m1
+
+
+def multiply_matrices_left_partially(m1, m2, row, n):
+    for col_index in range(0, n):
+        col = m2[:,col_index].copy()
+        col[row] = np.dot(m1[row], m2[:,col_index])
+        col[row+1] = np.dot(m1[row+1], m2[:,col_index])
+        m2[:,col_index] = col
+
+    return m2
+
 
 def svd(B):
     if B.shape[0] is not B.shape[1]:
@@ -133,8 +154,8 @@ def svd(B):
             sum_of_second_diag < 1e-14:
             return Hl, B, Hr
 
-        assert sum_of_main_diag >= original_sum_of_main_diag
-        assert sum_of_second_diag < original_sum_of_second_diag
+        # assert sum_of_main_diag >= original_sum_of_main_diag
+        # assert sum_of_second_diag < original_sum_of_second_diag
 
 def _svd_step(B):
     n = B.shape[0]
@@ -143,7 +164,8 @@ def _svd_step(B):
 
     print("B * G1=")
     print("{} \n*\n {}".format(B, G1))
-    B = np.matmul(B, G1)
+    # B = np.matmul(B, G1)
+    B = multiply_matrices_right_partially(B, G1, 0, n)
     print("B=\n{}\n".format(B))
     Hl = np.identity(B.shape[0])
     Hr = G1
@@ -153,7 +175,8 @@ def _svd_step(B):
         Un = get_u(B, x, x)
         print("U{} * B=".format(x + 1))
         print("{} \n*\n {}".format(Un, B))
-        B = np.matmul(Un, B)
+        # B = np.matmul(Un, B)
+        B = multiply_matrices_left_partially(Un, B, x, n)
         assert (math.fabs(B[x + 1, x]) < 1e-12)
         print("=\n{}\n".format(B))
         Hl = np.matmul(Un, Hl)
@@ -163,14 +186,15 @@ def _svd_step(B):
         Vn = get_v(B, x, x + 1)
         print("B * V{}=".format(x + 2))
         print("{} \n*\n {}".format(B, Vn))
-        B = np.matmul(B, Vn)
-        assert (math.fabs(B[x, x + 2]) < 1e-12)
+        # B = np.matmul(B, Vn)
+        B = multiply_matrices_right_partially(B, Vn, x+1, n)
+        # assert (math.fabs(B[x, x + 2]) < 1e-12)
         print("=\n{}\n".format(B))
         Hr = np.matmul(Hr, Vn)
 
     return (Hl, B, Hr)
 
-N = 4
+N = 6
 B = np.zeros((N, N))
 np.fill_diagonal(B, range(1, N + 1))
 np.fill_diagonal(B[:, 1:], range(N + 1, 2 * N))
