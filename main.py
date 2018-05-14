@@ -148,7 +148,7 @@ def svd(B):
         sum_of_main_diag = sum(map(math.fabs, np.asarray(B.diagonal())))
         sum_of_second_diag = sum(map(math.fabs, np.asarray(B.diagonal(1))))
 
-        print(sum_of_second_diag)
+        # print(sum_of_second_diag)
         if sum_of_main_diag == original_sum_of_main_diag and \
             sum_of_second_diag == original_sum_of_second_diag or \
             sum_of_second_diag < 1e-14:
@@ -162,39 +162,39 @@ def _svd_step(B):
     lambd = nearest_eigen_value(B)
     G1 = compute_rotation_g1(B, lambd)
 
-    print("B * G1=")
-    print("{} \n*\n {}".format(B, G1))
+    # print("B * G1=")
+    # print("{} \n*\n {}".format(B, G1))
     # B = np.matmul(B, G1)
     B = multiply_matrices_right_partially(B, G1, 0, n)
-    print("B=\n{}\n".format(B))
+    # print("B=\n{}\n".format(B))
     Hl = np.identity(B.shape[0])
     Hr = G1
 
     for x in range(0, n - 1):
         # print("B=\n{}".format(B))
         Un = get_u(B, x, x)
-        print("U{} * B=".format(x + 1))
-        print("{} \n*\n {}".format(Un, B))
+        # print("U{} * B=".format(x + 1))
+        # print("{} \n*\n {}".format(Un, B))
         # B = np.matmul(Un, B)
         B = multiply_matrices_left_partially(Un, B, x, n)
         assert (math.fabs(B[x + 1, x]) < 1e-12)
-        print("=\n{}\n".format(B))
+        # print("=\n{}\n".format(B))
         Hl = np.matmul(Un, Hl)
 
         if x == n - 2:
             break
         Vn = get_v(B, x, x + 1)
-        print("B * V{}=".format(x + 2))
-        print("{} \n*\n {}".format(B, Vn))
+        # print("B * V{}=".format(x + 2))
+        # print("{} \n*\n {}".format(B, Vn))
         # B = np.matmul(B, Vn)
         B = multiply_matrices_right_partially(B, Vn, x+1, n)
         # assert (math.fabs(B[x, x + 2]) < 1e-12)
-        print("=\n{}\n".format(B))
+        # print("=\n{}\n".format(B))
         Hr = np.matmul(Hr, Vn)
 
     return (Hl, B, Hr)
 
-N = 6
+N = 8
 B = np.zeros((N, N))
 np.fill_diagonal(B, range(1, N + 1))
 np.fill_diagonal(B[:, 1:], range(N + 1, 2 * N))
